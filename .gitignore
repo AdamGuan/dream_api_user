@@ -1,0 +1,6 @@
+*.log
+*.out
+*.tmp
+dream_api_sms*
+old_dream_api_sms*
+*.tar.gz
