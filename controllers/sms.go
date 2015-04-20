@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	"dream_api_user/helper"
 	"dream_api_user/models"
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/config"
 	"net/http"
-	"dream_api_user/helper"
-	"github.com/astaxie/beego/config" 
 	//"fmt"
 	//"strings"
 )
@@ -16,16 +16,16 @@ type SmsController struct {
 }
 
 //json echo
-func (u0 *SmsController) jsonEcho(datas map[string]interface{},u *SmsController) {
+func (u0 *SmsController) jsonEcho(datas map[string]interface{}, u *SmsController) {
 	if datas["responseNo"] == -6 || datas["responseNo"] == -7 {
 		u.Ctx.ResponseWriter.Header().Set("Content-Type", "application/json; charset=utf-8")
 		u.Ctx.ResponseWriter.WriteHeader(http.StatusUnauthorized)
-	} 
-	
+	}
+
 	datas["responseMsg"] = ""
 	appConf, _ := config.NewConfig("ini", "conf/app.conf")
-	debug,_ := appConf.Bool(beego.RunMode+"::debug")
-	if debug{
+	debug, _ := appConf.Bool(beego.RunMode + "::debug")
+	if debug {
 		datas["responseMsg"] = models.ConfigMyResponse[helper.IntToString(datas["responseNo"].(int))]
 	}
 
@@ -34,14 +34,14 @@ func (u0 *SmsController) jsonEcho(datas map[string]interface{},u *SmsController)
 }
 
 //sign check, token为包名md5
-func (u0 *SmsController) checkSign(u *SmsController)int {
+func (u0 *SmsController) checkSign(u *SmsController) int {
 	result := -6
 	pkg := u.Ctx.Request.Header.Get("pkg")
 	sign := u.Ctx.Request.Header.Get("sign")
 	var pkgObj *models.MPkg
-	if !pkgObj.CheckPkgExists(pkg){
+	if !pkgObj.CheckPkgExists(pkg) {
 		result = -7
-	}else{
+	} else {
 		var signObj *models.MSign
 		if re := signObj.CheckSign(sign, helper.Md5(pkg)); re == true {
 			result = 0
@@ -76,18 +76,18 @@ func (u *SmsController) Smsvalid() {
 	if datas["responseNo"] == 0 && helper.CheckMPhoneValid(mobilePhoneNumber) && len(num) > 0 {
 		datas["responseNo"] = -1
 		pkgConfig := pkgObj.GetPkgConfig(pkg)
-		if len(pkgConfig) > 0{
-			res := smsObj.ValidMsm(num,mobilePhoneNumber,pkgConfig["F_app_id"],pkgConfig["F_app_key"])
-			if len(res) == 0{
+		if len(pkgConfig) > 0 {
+			res := smsObj.ValidMsm(num, mobilePhoneNumber, pkgConfig["F_app_id"], pkgConfig["F_app_key"])
+			if len(res) == 0 {
 				datas["responseNo"] = 0
-				smsObj.AddMsmActionvalid(mobilePhoneNumber,pkg,num)
+				smsObj.AddMsmActionvalid(mobilePhoneNumber, pkg, num)
 			}
 		}
-	}else if datas["responseNo"] == 0{
+	} else if datas["responseNo"] == 0 {
 		datas["responseNo"] = -1
 	}
 	//return
-	u.jsonEcho(datas,u)
+	u.jsonEcho(datas, u)
 }
 
 // @Title 发送一条短信验证码(注册时)
@@ -115,27 +115,28 @@ func (u *SmsController) RegisterGetSms() {
 	if datas["responseNo"] == 0 && helper.CheckMPhoneValid(mobilePhoneNumber) {
 		datas["responseNo"] = -1
 		res2 := userObj.CheckPhoneValid(mobilePhoneNumber)
-		if res2 == 0{
+		if res2 == 0 {
 			pkgConfig := pkgObj.GetPkgConfig(pkg)
-			if len(pkgConfig) > 0 && smsObj.CheckMsmRateValid(mobilePhoneNumber,pkg){
-				smsObj.AddMsmRate(mobilePhoneNumber,pkg)
-				res := smsObj.GetMsm(mobilePhoneNumber,pkgConfig["F_app_id"],pkgConfig["F_app_key"],pkgConfig["F_app_name"],pkgConfig["F_app_msm_template"])
-				if len(res) == 0{
+			if len(pkgConfig) > 0 && smsObj.CheckMsmRateValid(mobilePhoneNumber, pkg) {
+				smsObj.AddMsmRate(mobilePhoneNumber, pkg)
+				res := smsObj.GetMsm(mobilePhoneNumber, pkgConfig["F_app_id"], pkgConfig["F_app_key"], pkgConfig["F_app_name"], pkgConfig["F_app_msm_template"])
+				if len(res) == 0 {
 					datas["responseNo"] = 0
-					smsObj.AddMsmRate(mobilePhoneNumber,pkg)
-				}else{
-					smsObj.DeleteMsmRate(mobilePhoneNumber,pkg)
+					smsObj.AddMsmRate(mobilePhoneNumber, pkg)
+					u.logSmsSend(pkg)
+				} else {
+					smsObj.DeleteMsmRate(mobilePhoneNumber, pkg)
 				}
 			}
-		}else{
+		} else {
 			datas["responseNo"] = res2
 		}
-	}else if datas["responseNo"] == 0{
+	} else if datas["responseNo"] == 0 {
 		datas["responseNo"] = -1
 	}
 
 	//return
-	u.jsonEcho(datas,u)
+	u.jsonEcho(datas, u)
 }
 
 // @Title 发送一条短信验证码(重置密码时)
@@ -165,25 +166,26 @@ func (u *SmsController) ResetPwdGetSms() {
 		res := userObj.CheckPhoneExists(mobilePhoneNumber)
 		if res {
 			pkgConfig := pkgObj.GetPkgConfig(pkg)
-			if len(pkgConfig) > 0 && smsObj.CheckMsmRateValid(mobilePhoneNumber,pkg) {
-				smsObj.AddMsmRate(mobilePhoneNumber,pkg)
-				res := smsObj.GetMsm(mobilePhoneNumber,pkgConfig["F_app_id"],pkgConfig["F_app_key"],pkgConfig["F_app_name"],pkgConfig["F_app_msm_template"])
-				if len(res) == 0{
+			if len(pkgConfig) > 0 && smsObj.CheckMsmRateValid(mobilePhoneNumber, pkg) {
+				smsObj.AddMsmRate(mobilePhoneNumber, pkg)
+				res := smsObj.GetMsm(mobilePhoneNumber, pkgConfig["F_app_id"], pkgConfig["F_app_key"], pkgConfig["F_app_name"], pkgConfig["F_app_msm_template"])
+				if len(res) == 0 {
 					datas["responseNo"] = 0
-					smsObj.AddMsmRate(mobilePhoneNumber,pkg)
-				}else{
-					smsObj.DeleteMsmRate(mobilePhoneNumber,pkg)
+					smsObj.AddMsmRate(mobilePhoneNumber, pkg)
+					u.logSmsSend(pkg)
+				} else {
+					smsObj.DeleteMsmRate(mobilePhoneNumber, pkg)
 				}
 			}
-		}else{
+		} else {
 			datas["responseNo"] = -4
 		}
-	}else if datas["responseNo"] == 0{
+	} else if datas["responseNo"] == 0 {
 		datas["responseNo"] = -4
 	}
 
 	//return
-	u.jsonEcho(datas,u)
+	u.jsonEcho(datas, u)
 }
 
 // @Title 发送一条短信验证码(更换手机号码)
@@ -215,23 +217,36 @@ func (u *SmsController) ChangePhoneSms() {
 		res := userObj.CheckPhoneExists(mobilePhoneNumber)
 		if res {
 			pkgConfig := pkgObj.GetPkgConfig(pkg)
-			if len(pkgConfig) > 0 && smsObj.CheckMsmRateValid(newPhone,pkg) {
-				smsObj.AddMsmRate(newPhone,pkg)
-				res := smsObj.GetMsm(newPhone,pkgConfig["F_app_id"],pkgConfig["F_app_key"],pkgConfig["F_app_name"],pkgConfig["F_app_msm_template"])
-				if len(res) == 0{
+			if len(pkgConfig) > 0 && smsObj.CheckMsmRateValid(newPhone, pkg) {
+				smsObj.AddMsmRate(newPhone, pkg)
+				res := smsObj.GetMsm(newPhone, pkgConfig["F_app_id"], pkgConfig["F_app_key"], pkgConfig["F_app_name"], pkgConfig["F_app_msm_template"])
+				if len(res) == 0 {
 					datas["responseNo"] = 0
-					smsObj.AddMsmRate(newPhone,pkg)
-				}else{
-					smsObj.DeleteMsmRate(newPhone,pkg)
+					smsObj.AddMsmRate(newPhone, pkg)
+					u.logSmsSend(pkg)
+				} else {
+					smsObj.DeleteMsmRate(newPhone, pkg)
 				}
 			}
-		}else{
+		} else {
 			datas["responseNo"] = -4
 		}
-	}else if datas["responseNo"] == 0{
+	} else if datas["responseNo"] == 0 {
 		datas["responseNo"] = -10
 	}
 
 	//return
-	u.jsonEcho(datas,u)
+	u.jsonEcho(datas, u)
+}
+
+//记录发送成功的短信
+func (u *SmsController) logSmsSend(pkg string) {
+	method := "POST"
+	debug := "0"
+	if models.Debug {
+		debug = "1"
+	}
+	requestUri := "http://useracc.dream.cn:8286/v1/history/smssend?pkg=" + pkg + "&debug=" + debug
+	requestData := map[string]string{}
+	helper.CurlSmsLog(requestUri, method, requestData)
 }

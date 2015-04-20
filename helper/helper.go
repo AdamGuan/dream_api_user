@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 	//"net/url"
-	"time"
-	"regexp"
-	"github.com/astaxie/beego/config" 
 	"crypto/sha1"
+	"github.com/astaxie/beego/config"
+	"regexp"
+	"time"
 )
 
 var MyLog *logs.BeeLogger
@@ -24,7 +24,7 @@ var MyLog *logs.BeeLogger
 func init() {
 	//初始化log
 	appConf, _ := config.NewConfig("ini", "conf/app.conf")
-	debug,_ := appConf.Bool(beego.RunMode+"::debug")
+	debug, _ := appConf.Bool(beego.RunMode + "::debug")
 	if debug {
 		MyLog = logs.NewLogger(10000)
 		MyLog.SetLogger("file", `{"filename":"log.log"}`)
@@ -97,16 +97,40 @@ func CurlLeanCloud(requestUri string, method string, requestData map[string]stri
 	return p
 }
 
+//记录短信发送的 curl
+func CurlSmsLog(requestUri string, method string, requestData map[string]string) (map[string]interface{}, map[string][]string) {
+	fmt.Println(requestUri)
+	fmt.Println(method)
+	fmt.Println(requestData)
+
+	geturl := requestUri
+	req, _ := http.NewRequest(method, geturl, nil)
+	data, _ := json.Marshal(requestData)
+	req.Body = ioutil.NopCloser(strings.NewReader(string(data)))
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+	bodyByte, _ := ioutil.ReadAll(resp.Body)
+	p := map[string]interface{}{}
+	json.Unmarshal(bodyByte, &p)
+	return p, resp.Header
+}
+
 //检查签名
 func CheckSign(sign string, token string) bool {
 	//sign = timestamp+md5(token+timestamp)
 	if len(sign) == 46 && len(token) == 32 {
 		timestamp := sign[0:14]
 		//检测是否超时
-//		appConf, _ := config.NewConfig("ini", "conf/app.conf")
-//		debug,_ := appConf.Bool(beego.RunMode+"::debug")
-//		if !debug{
-		if 1 != 1{
+		//		appConf, _ := config.NewConfig("ini", "conf/app.conf")
+		//		debug,_ := appConf.Bool(beego.RunMode+"::debug")
+		//		if !debug{
+		if 1 != 1 {
 			nowTime, _ := strconv.Atoi(time.Now().Format("20060102150405"))
 			requestTime, _ := strconv.Atoi(timestamp)
 			timedistince := nowTime - requestTime
@@ -127,62 +151,62 @@ func CheckSign(sign string, token string) bool {
 }
 
 //手机号码有效性验证
-func CheckMPhoneValid(phone string)bool{
+func CheckMPhoneValid(phone string) bool {
 	matched, err := regexp.MatchString("^1[3|4|5|6|7|8][0-9]{9}$", phone)
-	if err == nil && matched{
+	if err == nil && matched {
 		return true
 	}
 	return false
 }
 
 //密码有效性验证
-func CheckPwdValid(pwd string)bool{
+func CheckPwdValid(pwd string) bool {
 	//pwd = strings.TrimSpace(pwd)
 	matched, err := regexp.MatchString("^\\w{6,40}$", pwd)
-	if err == nil && matched{
+	if err == nil && matched {
 		return true
 	}
 	return false
 }
 
 //md5
-func Md5(str string)string{
+func Md5(str string) string {
 	md5Str := fmt.Sprintf("%x", md5.Sum([]byte(str)))
 	return md5Str
 }
 
 //get now datatime
-func GetNowDateTime()string{
+func GetNowDateTime() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
 
-func GetDateTimeBeforeMinute(num int)string{
+func GetDateTimeBeforeMinute(num int) string {
 	return time.Now().Add(-time.Minute * time.Duration(num)).Format("2006-01-02 15:04:05")
 }
 
-func GetDateTimeAfterMinute(num int)string{
+func GetDateTimeAfterMinute(num int) string {
 	return time.Now().Add(time.Minute * time.Duration(num)).Format("2006-01-02 15:04:05")
 }
 
-func Split(str string,flag string)[]string{
+func Split(str string, flag string) []string {
 	return strings.Split(str, ",")
 }
 
-func JoinString(list []string,flag string)string{
+func JoinString(list []string, flag string) string {
 	result := ""
-	if len(list) > 0{
-		for _,v := range list{
-			result += v+","
+	if len(list) > 0 {
+		for _, v := range list {
+			result += v + ","
 		}
-		result = strings.Trim(result,",")
+		result = strings.Trim(result, ",")
 	}
 	return result
 }
 
-func StringInArray(value string,list []string)bool{
+func StringInArray(value string, list []string) bool {
 	result := false
-	for _,item := range list{
-		if value == item{
+	for _, item := range list {
+		if value == item {
 			result = true
 			break
 		}
@@ -190,6 +214,6 @@ func StringInArray(value string,list []string)bool{
 	return result
 }
 
-func Sha1(str string)string{
+func Sha1(str string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(str)))
 }
